@@ -1,0 +1,27 @@
+```yaml
+# Data paths
+data:
+  train_dir: /path/to/ravdess/train
+  val_dir: /path/to/ravdess/val
+  sample_rate: 16000
+  max_length: 5.0  # Max audio length in secon
+  n_mels: 128      # Number of mel bins for CNN baseline
+
+# Model settings
+model:
+  save_path: ./models/wav2vec2-emotion  # Path to save Wav2Vec2 model
+  cnn_save_path: ./models/cnn_model     # Path to save CNN model
+
+# Training hyperparameters
+training:
+  lr: 3e-5          # Learning rate (suitable for Wav2Vec2 fine-tuning)
+  batch_size: 8     # Batch size for training and evaluation
+  epochs: 10        # Number of training epochs
+  seed: 42          # Random seed for reproducibility
+
+# Wandb configuration
+wandb:
+  project: emotion-classification  # Wandb project name
+  entity: your_wandb_username     # Your wandb username or team name
+  log_freq: 10                    # Frequency of logging to wandb
+```
