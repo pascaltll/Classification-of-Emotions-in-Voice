@@ -49,8 +49,10 @@ def split_ravdess_dataset(source_dir, train_dir, val_dir, train_size=0.8, seed=4
     print(f"Validation files: {len(os.listdir(val_dir))}")
 
 if __name__ == "__main__":
-    SOURCE_DIR = "/emotion-classification/data/Audio_Song_Actors_01-24"
-    TRAIN_DIR = "/emotion-classification/data/ravdess/train"
-    VAL_DIR = "/emotion-classification/data/ravdess/val"
+    SOURCE_DIR = "../data/Audio_Song_Actors_01-24"
+    TRAIN_DIR = "../data/ravdess/train"
+    VAL_DIR = "../data/ravdess/val"
     
     split_ravdess_dataset(SOURCE_DIR, TRAIN_DIR, VAL_DIR)
+
+  
