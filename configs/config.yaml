@@ -1,16 +1,16 @@
 ```yaml
 # Data paths
 data:
-  train_dir: /emotion-classification/data/ravdess/train
-  val_dir: /emotion-classification/data/ravdess/val
+  train_dir: /Classification-of-Emotions-in-Voice/data/ravdess/train
+  val_dir: /Classification-of-Emotions-in-Voice/data/ravdess/val
   sample_rate: 16000
   max_length: 5.0  # Max audio length in seconds
   n_mels: 128      # Number of mel bins for CNN baseline
 
 # Model settings
 model:
-  save_path: /content/emotion-classification/models/wav2vec2-emotion  # Path to save Wav2Vec2 model
-  cnn_save_path: /content/emotion-classification/models/cnn_model     # Path to save CNN model
+  save_path: /Classification-of-Emotions-in-Voice/models/wav2vec2-emotion  # Path to save Wav2Vec2 model
+  cnn_save_path: /Classification-of-Emotions-in-Voice/models/cnn_model     # Path to save CNN model
 
 # Training hyperparameters
 training:
@@ -21,7 +21,7 @@ training:
 
 # Wandb configuration
 wandb:
-  project: emotion-classification  # Wandb project name
-  entity: your_wandb_username     # Replace with your wandb username
+  project: Classification-of-Emotions-in-Voice  
+  entity: your_wandb_username     
   log_freq: 10                    # Frequency of logging to wandb
 ```
