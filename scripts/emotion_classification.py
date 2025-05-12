@@ -57,8 +57,14 @@ def compute_metrics(eval_pred):
     f1 = f1_score(labels, predictions, average='weighted')
     return {'accuracy': acc, 'f1': f1}
 
-@hydra.main(config_path="configs", config_name="config")
+@hydra.main(config_path="../configs", config_name="config", version_base="1.1")
 def main(cfg: DictConfig):
+    # Resolve relative paths
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    cfg.data.train_dir = os.path.join(project_root, cfg.data.train_dir)
+    cfg.data.val_dir = os.path.join(project_root, cfg.data.val_dir)
+    cfg.model.save_path = os.path.join(project_root, cfg.model.save_path)
+    
     wandb.init(project=cfg.wandb.project, entity=cfg.wandb.entity, config=dict(cfg))
     
     processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base")
@@ -76,11 +82,12 @@ def main(cfg: DictConfig):
         per_device_train_batch_size=cfg.training.batch_size,
         per_device_eval_batch_size=cfg.training.batch_size,
         num_train_epochs=cfg.training.epochs,
-        logging_dir='./logs',
+        logging_dir=os.path.join(project_root, 'logs'),
         logging_steps=cfg.wandb.log_freq,
         save_strategy="epoch",
         load_best_model_at_end=True,
-        report_to="wandb",
+        # report_to="wandb",
+        report_to="none",
         seed=cfg.training.seed,
     )
     
