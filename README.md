@@ -18,3 +18,9 @@ The goal is to classify eight emotions (neutral, calm, happy, sad, angry, fearfu
 
 data set:
 https://zenodo.org/records/1188976
+
+```
+- Download `Audio_Song_Actors_01-24.zip` from [Zenodo](https://zenodo.org/record/1188976).
+
+- Unzip to `/emotion-classification/data/Audio_Song_Actors_01-24`.
+```

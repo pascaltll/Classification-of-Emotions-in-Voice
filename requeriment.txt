@@ -6,3 +6,4 @@ wandb
 hydra-core 
 scikit-learn 
 numpy
+librosa
