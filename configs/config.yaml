@@ -9,8 +9,8 @@ data:
 
 # Model settings
 model:
-  save_path: ./models/wav2vec2-emotion  # Path to save Wav2Vec2 model
-  cnn_save_path: ./models/cnn_model     # Path to save CNN model
+  save_path: /content/emotion-classification/models/wav2vec2-emotion  # Path to save Wav2Vec2 model
+  cnn_save_path: /content/emotion-classification/models/cnn_model     # Path to save CNN model
 
 # Training hyperparameters
 training:
