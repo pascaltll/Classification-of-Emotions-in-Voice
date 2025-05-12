@@ -6,22 +6,10 @@ Project Overview
 The goal is to classify eight emotions (neutral, calm, happy, sad, angry, fearful, surprise, disgust) from speech recordings. The project uses:
 
 
-
-
-
-Wav2Vec2: A transformer-based model from Hugging Face, fine-tuned for emotion classification.
-
-
-
-RAVDESS Dataset: Audio clips from 24 actors expressing emotions.
-
-
-
-Mel-Spectrograms: Audio is preprocessed into mel-spectrograms using torchaudio.
-
-
-
-Metrics: Accuracy and F1-score, visualized with wandb.
+- Wav2Vec2: A transformer-based model from Hugging Face, fine-tuned for emotion classification.
+- RAVDESS Dataset: Audio clips from 24 actors expressing emotions.
+- Mel-Spectrograms: Audio is preprocessed into mel-spectrograms using torchaudio.
+- Metrics: Accuracy and F1-score, visualized with wandb.
 
 
 
