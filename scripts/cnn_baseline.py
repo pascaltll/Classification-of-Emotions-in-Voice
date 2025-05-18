@@ -16,7 +16,8 @@ class CNN(nn.Module):
         self.conv1 = nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1)
         self.conv2 = nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1)
         self.pool = nn.MaxPool2d(2, 2)
-        self.fc1 = nn.Linear(32 * 32 * 25, 128)  # Adjust based on spectrogram size
+        self.fc1 = nn.Linear(32 * 32 * 39, 128)  # Updated from 25 to 39
+        self.dropout = nn.Dropout(0.5)
         self.fc2 = nn.Linear(128, num_classes)
         self.relu = nn.ReLU()
     
@@ -25,6 +26,7 @@ class CNN(nn.Module):
         x = self.pool(self.relu(self.conv2(x)))
         x = x.view(x.size(0), -1)
         x = self.relu(self.fc1(x))
+        x = self.dropout(x)
         x = self.fc2(x)
         return x
 
@@ -107,28 +109,32 @@ def train_cnn(model, train_loader, val_loader, cfg, device):
         train_f1 = f1_score(train_labels, train_preds, average='weighted')
         val_f1 = f1_score(val_labels, val_preds, average='weighted')
         
-        wandb.log({
-            'epoch': epoch,
-            'train_loss': np.mean(train_loss),
-            'val_loss': np.mean(val_loss),
-            'train_acc': train_acc,
-            'val_acc': val_acc,
-            'train_f1': train_f1,
-            'val_f1': val_f1
-        })
+        # wandb.log({
+        #     'epoch': epoch,
+        #     'train_loss': np.mean(train_loss),
+        #     'val_loss': np.mean(val_loss),
+        #     'train_acc': train_acc,
+        #     'val_acc': val_acc,
+        #     'train_f1': train_f1,
+        #     'val_f1': val_f1
+        # })
         
         print(f"Epoch {epoch}: Train Loss={np.mean(train_loss):.4f}, Val Loss={np.mean(val_loss):.4f}, "
               f"Val Acc={val_acc:.4f}, Val F1={val_f1:.4f}")
 
-@hydra.main(config_path="configs", config_name="config")
+# @hydra.main(config_path="../configs", config_name="config")
+@hydra.main(config_path="../configs", config_name="config", version_base="1.2")
 def main(cfg: DictConfig):
-    wandb.init(project=cfg.wandb.project, entity=cfg.wandb.entity, config=dict(cfg))
+    # wandb.init(project=cfg.wandb.project, entity=cfg.wandb.entity, config=dict(cfg))
+    torch.manual_seed(cfg.training.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     model = CNN(num_classes=8)
     train_dataset = RAVDESSMelDataset(
         cfg.data.train_dir, cfg.data.sample_rate, cfg.data.n_mels, cfg.data.max_length
     )
+
+
     val_dataset = RAVDESSMelDataset(
         cfg.data.val_dir, cfg.data.sample_rate, cfg.data.n_mels, cfg.data.max_length
     )
