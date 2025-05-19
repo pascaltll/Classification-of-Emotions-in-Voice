@@ -1,7 +1,13 @@
 # Data paths
 data:
-  train_dir: data/ravdess/train
-  val_dir: data/ravdess/val
+  train_dir_song: processed_data/song/train
+  val_dir_song: processed_data/song/val
+  test_dir_song: processed_data/song/test
+  
+  train_dir_speech: processed_data/speech/train
+  val_dir_speech: processed_data/speech/val
+  test_dir_speech: processed_data/speech/test
+  
   sample_rate: 16000
   max_length: 5.0  # Max audio length in seconds
   n_mels: 128      # Number of mel bins for CNN baseline
@@ -10,12 +16,13 @@ data:
 model:
   save_path: models/wav2vec2-emotion  # Path to save Wav2Vec2 model
   cnn_save_path: models/cnn_model     # Path to save CNN model
+  hybrid_save_path: models/hybrid_model
 
 # Training hyperparameters
 training:
-  lr: 3e-5          # Learning rate (suitable for Wav2Vec2 fine-tuning)
-  batch_size: 8     # Batch size for training and evaluation
-  epochs: 10        # Number of training epochs
+  lr: 1e-5          # Learning rate (suitable for Wav2Vec2 fine-tuning)
+  batch_size: 64     # Batch size for training and evaluation
+  epochs: 50        # Number of training epochs
   seed: 42          # Random seed for reproducibility
 
 # Wandb configuration

@@ -1,0 +1,180 @@
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import Dataset, DataLoader
+import torchaudio
+import librosa
+import numpy as np
+import os
+import wandb
+import hydra
+from omegaconf import DictConfig
+from sklearn.metrics import accuracy_score, f1_score
+
+# Hybrid CNN-LSTM Model Definition (adapted for Mel Spectrogram input)
+class HybridCNNLSTM(nn.Module):
+    def __init__(self, input_shape=(128, 196), num_classes=8):  # Adjusted input shape for Mel (n_mels, time_frames)
+        super(HybridCNNLSTM, self).__init__()
+        # CNN Part
+        self.conv1 = nn.Conv2d(1, 32, kernel_size=(3, 3), padding=1)
+        self.conv2 = nn.Conv2d(32, 64, kernel_size=(3, 3), padding=1)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.dropout = nn.Dropout(0.3)
+        self.relu = nn.ReLU()
+
+        # Compute CNN output size after convolutions and pooling
+        cnn_out_height = input_shape[0] // 4  # Two pooling layers
+        cnn_out_width = input_shape[1] // 4
+        cnn_out_channels = 64
+
+        # LSTM Part
+        self.lstm = nn.LSTM(input_size=cnn_out_channels * cnn_out_height, hidden_size=128, num_layers=2, batch_first=True)
+        self.fc1 = nn.Linear(128, 64)
+        self.fc2 = nn.Linear(64, num_classes)
+
+    def forward(self, x):
+        # CNN forward
+        batch_size = x.size(0)
+        x = self.relu(self.conv1(x))
+        x = self.pool(x)
+        x = self.relu(self.conv2(x))
+        x = self.pool(x)
+        # x shape: (batch_size, 64, 32, time_frames // 4)
+
+        # Permute to (batch_size, time_frames // 4, 64, 32)
+        x = x.permute(0, 3, 1, 2).contiguous()
+
+        # Reshape to (batch_size, time_frames // 4, 64 * 32)
+        x = x.view(batch_size, x.size(1), -1)
+
+        # LSTM forward
+        x, _ = self.lstm(x)  # Shape: (batch, time_frames // 4, hidden_size)
+        x = x[:, -1, :]  # Take the last time step
+        # Fully connected layers
+        x = self.dropout(self.relu(self.fc1(x)))
+        x = self.fc2(x)
+        return x
+
+# Dataset Class with Mel Spectrograms (using config parameters)
+class RAVDESSMelDataset(Dataset):
+    def __init__(self, data_dir, sample_rate, n_mels, max_length):
+        self.data_dir = data_dir
+        self.sample_rate = sample_rate
+        self.n_mels = n_mels
+        self.max_length = max_length
+        self.files = []
+        self.labels = []
+
+        for file in os.listdir(data_dir):
+            if file.endswith('.wav'):
+                self.files.append(os.path.join(data_dir, file))
+                emotion_id = int(file.split('-')[2]) - 1
+                self.labels.append(emotion_id)
+
+    def __len__(self):
+        return len(self.files)
+
+    def __getitem__(self, idx):
+        file_path = self.files[idx]
+        label = self.labels[idx]
+
+        signal, sr = librosa.load(file_path, sr=self.sample_rate)
+        max_samples = int(self.max_length * self.sample_rate)
+        if len(signal) > max_samples:
+            signal = signal[:max_samples]
+        else:
+            signal = np.pad(signal, (0, max_samples - len(signal)), 'constant')
+
+        mel_spec = librosa.feature.melspectrogram(y=signal, sr=self.sample_rate, n_mels=self.n_mels)
+        mel_spec_db = librosa.power_to_db(mel_spec, ref=np.max)
+
+        mel_spec_db = torch.tensor(mel_spec_db, dtype=torch.float32).unsqueeze(0)  # Add channel dimension
+        return {
+            'input': mel_spec_db,
+            'label': torch.tensor(label, dtype=torch.long)
+        }
+
+def train_hybrid(model, train_loader, val_loader, cfg, device):
+    optimizer = optim.Adam(model.parameters(), lr=cfg.training.lr)
+    criterion = nn.CrossEntropyLoss()
+    model.to(device)
+
+    for epoch in range(cfg.training.epochs):
+        model.train()
+        train_loss, train_preds, train_labels = [], [], []
+        for batch in train_loader:
+            inputs = batch['input'].to(device)
+            labels = batch['label'].to(device)
+
+            optimizer.zero_grad()
+            outputs = model(inputs)
+            loss = criterion(outputs, labels)
+            loss.backward()
+            optimizer.step()
+
+            train_loss.append(loss.item())
+            train_preds.extend(outputs.argmax(dim=-1).cpu().numpy())
+            train_labels.extend(labels.cpu().numpy())
+
+        model.eval()
+        val_loss, val_preds, val_labels = [], [], []
+        with torch.no_grad():
+            for batch in val_loader:
+                inputs = batch['input'].to(device)
+                labels = batch['label'].to(device)
+
+                outputs = model(inputs)
+                loss = criterion(outputs, labels)
+
+                val_loss.append(loss.item())
+                val_preds.extend(outputs.argmax(dim=-1).cpu().numpy())
+                val_labels.extend(labels.cpu().numpy())
+
+        train_acc = accuracy_score(train_labels, train_preds)
+        val_acc = accuracy_score(val_labels, val_preds)
+        train_f1 = f1_score(train_labels, train_preds, average='weighted')
+        val_f1 = f1_score(val_labels, val_preds, average='weighted')
+
+        # Log metrics to WandB
+        wandb.log({
+            'epoch': epoch + 1,
+            'train_loss': np.mean(train_loss),
+            'val_loss': np.mean(val_loss),
+            'train_acc': train_acc,
+            'val_acc': val_acc,
+            'train_f1': train_f1,
+            'val_f1': val_f1
+        })
+
+        print(f"Epoch {epoch + 1}: Train Loss={np.mean(train_loss):.4f}, Val Loss={np.mean(val_loss):.4f}, "
+              f"Val Acc={val_acc:.4f}, Val F1={val_f1:.4f}")
+
+@hydra.main(config_path="../configs", config_name="config", version_base="1.2")
+def main(cfg: DictConfig):
+    # Initialize WandB
+    wandb.init(project=cfg.wandb.project, entity=cfg.wandb.entity, config=dict(cfg))
+
+    torch.manual_seed(cfg.training.seed)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    model = HybridCNNLSTM()
+    train_dataset = RAVDESSMelDataset(
+        cfg.data.train_dir, cfg.data.sample_rate, cfg.data.n_mels, cfg.data.max_length
+    )
+    val_dataset = RAVDESSMelDataset(
+        cfg.data.val_dir, cfg.data.sample_rate, cfg.data.n_mels, cfg.data.max_length
+    )
+    train_loader = DataLoader(train_dataset, batch_size=cfg.training.batch_size, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=cfg.training.batch_size)
+
+    train_hybrid(model, train_loader, val_loader, cfg, device)
+
+    # Save the model
+    os.makedirs(cfg.model.hybrid_save_path, exist_ok=True)
+    torch.save(model.state_dict(), os.path.join(cfg.model.hybrid_save_path, 'hybrid_model.pth'))
+
+    # Finish WandB run
+    wandb.finish()
+
+if __name__ == "__main__":
+    main()

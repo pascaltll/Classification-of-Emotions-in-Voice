@@ -1,0 +1,18 @@
+data:
+  train_dir: data/ravdess/train
+  val_dir: data/ravdess/val
+  sample_rate: 16000
+  max_length: 5.0
+  n_mels: 128
+model:
+  save_path: models/wav2vec2-emotion
+  cnn_save_path: models/cnn_model
+training:
+  lr: 1.0e-05
+  batch_size: 64
+  epochs: 50
+  seed: 42
+wandb:
+  project: Classification-of-Emotions-in-Voice
+  entity: tuesta-lx-moscow-institute-of-physics-and-technology
+  log_freq: 10
