@@ -8,14 +8,6 @@ from torch.utils.data import Dataset
 from sklearn.metrics import accuracy_score, f1_score
 import numpy as np
 import os
-import logging
-from collections import Counter
-
-# # Configurar logging para depuración
-# logging.basicConfig(level=logging.INFO)
-# logger = logging.getLogger(__name__)
-os.environ["WANDB_MODE"] = "disabled"  # Desactiva W&B
-
 
 class RAVDESSDataset(Dataset):
     def __init__(self, data_dir, processor, max_length=5.0, sample_rate=16000):
@@ -39,33 +31,24 @@ class RAVDESSDataset(Dataset):
     def __getitem__(self, idx):
         file_path = self.files[idx]
         label = self.labels[idx]
-
+        
         waveform, sr = torchaudio.load(file_path)
         if sr != self.sample_rate:
             waveform = torchaudio.transforms.Resample(sr, self.sample_rate)(waveform)
-
+        
         max_samples = int(self.max_length * self.sample_rate)
         if waveform.shape[1] > max_samples:
             waveform = waveform[:, :max_samples]
         else:
             padding = max_samples - waveform.shape[1]
             waveform = torch.nn.functional.pad(waveform, (0, padding))
-
-        # Procesar el audio con el procesador
+        
         inputs = self.processor(waveform.squeeze().numpy(), sampling_rate=self.sample_rate, return_tensors="pt", padding=True)
-
-        # Verificar si attention_mask existe antes de agregarlo
-        if "attention_mask" in inputs:
-            return {
-                'input_values': inputs.input_values.squeeze(),
-                'attention_mask': inputs.attention_mask.squeeze(),
-                'labels': label
-            }
-        else:
-            return {
-                'input_values': inputs.input_values.squeeze(),
-                'labels': label
-            }
+        return {
+            'input_values': inputs.input_values.squeeze(),
+            'attention_mask': inputs.attention_mask.squeeze(),
+            'labels': label
+        }
 
 def compute_metrics(eval_pred):
     logits, labels = eval_pred
@@ -81,8 +64,13 @@ def main(cfg: DictConfig):
     cfg.data.train_dir = os.path.join(project_root, cfg.data.train_dir)
     cfg.data.val_dir = os.path.join(project_root, cfg.data.val_dir)
     cfg.model.save_path = os.path.join(project_root, cfg.model.save_path)
-    
-    wandb.init(project=cfg.wandb.project, entity=cfg.wandb.entity, config=dict(cfg))
+    #################3
+    print(f"Train dir: {cfg.data.train_dir}")
+    print(f"Val dir: {cfg.data.val_dir}")
+    print(f"Train dir exists: {os.path.exists(cfg.data.train_dir)}")
+    print(f"Train dir contents: {os.listdir(cfg.data.train_dir) if os.path.exists(cfg.data.train_dir) else 'Directory not found'}")
+    ####################
+    # wandb.init(project=cfg.wandb.project, entity=cfg.wandb.entity, config=dict(cfg))
     
     processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base")
     model = Wav2Vec2ForSequenceClassification.from_pretrained(
@@ -103,8 +91,7 @@ def main(cfg: DictConfig):
         logging_steps=cfg.wandb.log_freq,
         save_strategy="epoch",
         load_best_model_at_end=True,
-        # report_to="wandb",
-        report_to="none",
+        report_to="none",  # Desactiva wandb
         seed=cfg.training.seed,
     )
     

@@ -1,0 +1,6 @@
+[2025-05-19 03:18:54,781][__main__][INFO] - Directorio raíz del proyecto: /workspace/notebooks/Carlos
+[2025-05-19 03:18:54,781][__main__][INFO] - Train dir: /workspace/notebooks/Carlos/data/ravdess/train
+[2025-05-19 03:18:54,782][__main__][INFO] - Val dir: /workspace/notebooks/Carlos/data/ravdess/val
+[2025-05-19 03:18:54,782][__main__][INFO] - Model save path: /workspace/notebooks/Carlos/models/wav2vec2-emotion
+[2025-05-19 03:18:54,782][__main__][INFO] - Train dir exists: False
+[2025-05-19 03:18:54,782][__main__][INFO] - Val dir exists: False

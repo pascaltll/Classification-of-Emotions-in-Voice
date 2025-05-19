@@ -57,14 +57,19 @@ def compute_metrics(eval_pred):
     f1 = f1_score(labels, predictions, average='weighted')
     return {'accuracy': acc, 'f1': f1}
 
-@hydra.main(config_path="../configs", config_name="config", version_base="1.1")
+@hydra.main(config_path="../configs", config_name="config", version_base="1.2")
 def main(cfg: DictConfig):
     # Resolve relative paths
     project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     cfg.data.train_dir = os.path.join(project_root, cfg.data.train_dir)
     cfg.data.val_dir = os.path.join(project_root, cfg.data.val_dir)
     cfg.model.save_path = os.path.join(project_root, cfg.model.save_path)
-    
+    #################3
+    print(f"Train dir: {cfg.data.train_dir}")
+    print(f"Val dir: {cfg.data.val_dir}")
+    print(f"Train dir exists: {os.path.exists(cfg.data.train_dir)}")
+    print(f"Train dir contents: {os.listdir(cfg.data.train_dir) if os.path.exists(cfg.data.train_dir) else 'Directory not found'}")
+    ####################
     # wandb.init(project=cfg.wandb.project, entity=cfg.wandb.entity, config=dict(cfg))
     
     processor = Wav2Vec2Processor.from_pretrained("facebook/wav2vec2-base")
